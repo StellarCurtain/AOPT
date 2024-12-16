@@ -1,0 +1,81 @@
+\begin{document}
+\title{\textbf{高级优化 (2024 秋季)\\
+作业}}
+\author{学号, 姓名, 邮箱}
+\maketitle
+
+\begin{tcolorbox}
+\textbf{评分规则}: 共包含 5 道题目（270 分）。题目~\ref{sec:APG}（70 分）要求必做。从剩下的 4 道题目中选择任意 3 道（每题 50 分）完成。最终得分评估有以下两种选项：
+\begin{enumerate}
+  \item (\textbf{推荐}) 如果完成 4 道题目（题目~\ref{sec:APG} + 任意选择的 3 道，总计 220 分），当得分至少为 200 分时，可以获得满分（200 分）。
+  \item 如果完成 4 道题目（总计 220 分）\emph{并完成剩余的一道题目（50 分）}:
+    \begin{enumerate}
+      \item 如果在已选的 4 道题目中未能达到 200 分，则按照第一种情况计算得分。
+      \item 如果总分为 $(245+X)$ 分（$X \ge 0$），最终得分为 $(200+X)$ 分。
+    \end{enumerate}
+\end{enumerate}
+
+\begin{center}
+  \textbf{注意: 请清楚标明选择的题目编号。} 
+
+  {\color{red}\mychoice{x,x,x}}  \\  
+  \texttt{\% 用选择的编号替换 x,x,x（例如 2,3,4,5）}
+\end{center}
+\end{tcolorbox}
+
+
+
+\newpage
+\section{[70 分] APG 分析与实现}
+\label{sec:APG}
+考虑以下无约束的复合优化问题：
+\begin{align*}
+  \min_{\x \in \mathbb{R}^d} F(\x) \triangleq f(\x) + h(\x),
+\end{align*}
+其中 $f(\cdot)$ 和 $h(\cdot)$ 均为凸函数。函数 $f(\cdot)$ 是 $L$-光滑的，而 $h(\cdot)$ 不是。
+
+近端梯度法 (Proximal Gradient, PG) 的更新公式为 $\x_{t+1} = \P^h_L(\x_t) \triangleq \prox_{\frac{1}{L} h} (\x_t - \frac{1}{L} \nabla f(\x_t))$，其中 $\prox$ 是近端映射。PG 的收敛率为 $\O(1/T)$，但这一速率是次优的，与光滑优化中梯度下降法的次优性类似。改进复合优化问题的收敛率的一种自然方法是扩展 Nesterov 加速梯度下降法 (Accelerated Gradient Descent, AGD)，由此得到了加速近端梯度法 (Accelerated Proximal Gradient, APG) 算法：
+\begin{tcolorbox}[top=-1pt]
+  \begin{align*}
+    \x_{t+1} = \P^h_L(\y_t),\quad \y_{t+1} = \x_{t+1} + \beta_t(\x_{t+1} - \x_t),
+  \end{align*}
+  其中 $\beta_t > 0$ 是一个随时间变化的“动量”项 ($\x_{t+1} - \x_t$) 的权重。
+\end{tcolorbox}
+
+\begin{enumerate}
+  \item[(1)] \textbf{[15 分]} \underline{设计} $\beta_t$ 并 \underline{证明} APG 的收敛率：
+  \begin{align*}
+    F(\x_T) - F(\x^\star) \le \O\left(\frac{1}{T^2}\right). 
+  \end{align*}
+  \item[(2)] \textbf{[10 分]} 对于 Lipschitz 连续的凸函数，我们知道梯度下降法 (GD) 的收敛率为 $\O(1/\sqrt{T})$。鉴于 APG 方法的优异性能，我们可能会想，是否可以“修改”APG 以获得 Lipschitz 连续凸函数的更快收敛率？
+  
+  具体而言，对于凸且 Lipschitz 连续的优化问题 $\min_{\x \in \R^d} h(\x)$，我们可以将其重写为复合优化问题 $\min_{\x \in \R^d} f(\x) + h(\x)$，其中 $f(\x) = 0$ 是一个凸且 $0$-光滑的函数，满足 APG 的要求。因此，APG 的结果似乎直接暗示了 Lipschitz 连续凸函数 $h(\x)$ 的 $\O(1/T^2)$ 收敛率。即使 $L=0$ 可能会在近端映射中引发问题，我们也可以添加一个小的 $\epsilon$ 进行修正。这种想法是否正确？给出你的答案，并 \underline{简要说明原因}。
+  \item[(3)] \textbf{[5 分]} 为了更好地理解 APG，考虑以下实际应用：从视频中进行背景建模。假设给定一个数据矩阵 $D\in\mathbb{R}^{m\times d}$，我们期望将其分解为
+  \begin{align*}
+    D = L_0 + S_0,
+  \end{align*}
+  其中 $L_0 \in \R^{m\times d}$ 是低秩矩阵，$S_0 \in \R^{m \times d}$ 是稀疏矩阵。例如，如果数据矩阵 $D$ 表示监控视频的帧序列，背景变化 $L_0$ 可以建模为低秩结构，因为帧间存在相关性，而前景运动物体 $S_0$ 可以建模为稀疏分量。
+  
+  为实现这一目标，我们将其形式化为以下优化问题：
+  \begin{align}
+    \label{eq:objective}
+    \min_{L, S\in\mathbb{R}^{m\times d}} \frac{1}{2}\norm{D - L - S}_\text{F}^2 + \mu \norm{L}_* + \lambda \norm{S}_1,
+  \end{align}
+  其中 $\mu,\lambda>0$ 是超参数，$\norm{A}_*=\sum_{i}\sigma_i(A)=\text{tr}(\sqrt{A^\top A})$ 表示核范数，用于施加低秩约束，$\norm{A}_1=\sum_{ij}|A_{ij}|$ 表示 $\ell_1$-范数，用于施加稀疏性约束。
+  
+  为求解问题~\eqref{eq:objective}，我们可以将其转换为复合优化问题，其中优化变量为 $\mathbf{X} \triangleq (X^L, X^S)\in\mathbb{R}^{m\times d}\times \mathbb{R}^{m\times d}$，对应的复合函数为 $f(\mathbf{X})=\frac{1}{2}\norm{D - X^L - X^S}_\text{F}^2$ 和 $h(\mathbf{X})=\mu \norm{X^L}_* + \lambda \norm{X^S}_1$。此时优化问题变为
+  \begin{align*}
+    \min_{\mathbf{X}\in\mathbb{R}^{m\times d}\times \mathbb{R}^{m\times d}} f(\mathbf{X}) + h(\mathbf{X}).
+  \end{align*}
+  注意，$f(\cdot)$ 和 $h(\cdot)$ 都是凸函数，且 $f(\cdot)$ 是关于 $\norm{\cdot}$ 范数的 $L_f$-光滑函数（即 $\norm{\mathbf{X}}\triangleq\sqrt{\norm{X^L}_{\text{F}}^2+\norm{X^S}_{\text{F}}^2}$）。
+  
+  \underline{计算}该问题中 $f(\cdot)$ 的光滑参数 $L_f$。
+
+  \item[(4)] \textbf{[40 分]} 我们可以进一步使用 APG 算法求解视频背景建模问题。请 \underline{实现} PG 和 APG 算法，\underline{比较} PG 和 APG 的损失曲线，并在此处 \underline{附上图表}。详细说明可见文件 \texttt{AOpt-Lab1/AOpt-Lab1.ipynb} 中的 Jupyter Notebook。请确保将完成的 Notebook 导出为 HTML 文件。请确保所有输出可见，并且 \underline{\emph{提交 HTML 文件作为作业的一部分}}。
+\end{enumerate}
+\begin{solution}
+请在此填写你的答案。（可用中文或英文书写）
+~\\
+~\\
+~\\
+\end{solution}

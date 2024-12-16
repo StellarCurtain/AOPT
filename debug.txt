@@ -1,0 +1,9 @@
+CHAP2
+P28
+The1->The4
+
+
+
+CHAP4
+P29 
+(b) large step size -> small step size

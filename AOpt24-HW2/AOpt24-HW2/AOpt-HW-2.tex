@@ -1,0 +1,474 @@
+\documentclass[a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage[margin=1.25in]{geometry}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{hyperref}
+\usepackage{amsfonts, amsmath, amsthm, bm, amssymb}
+\usepackage{tcolorbox}
+\usepackage{nicefrac}
+\usepackage{algorithmic, algorithm}
+
+\numberwithin{equation}{section}
+\theoremstyle{definition}
+\newtheorem*{solution}{Solution}
+\newtheorem*{prove}{Proof}
+\newcommand\inner[2]{\langle #1, #2 \rangle}
+\newcommand\term[1]{\textsc{term}~(\textsc{#1})}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{myLemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{myDef}{Definition}
+\newtheorem{myAssume}{Assumption}
+\def \A {\mathbf{A}}
+\def \D {\mathcal{D}}
+\def \E {\mathbb{E}}
+\def \I {\mathbf{I}}
+\def \G {\mathcal{G}}
+\def \X {\mathcal{X}}
+\def \O {\mathcal{O}}
+\def \P {\mathcal{P}}
+\def \R {\mathbb{R}}
+\def \Y {\mathcal{Y}}
+\def \Z {\mathcal{Z}}
+\def \g {\textbf{g}}
+\def \p {\boldsymbol{p}}
+\def \u {\textbf{u}}
+\def \x {\textbf{x}}
+\def \xs {\x^\star}
+\def \xt {\widetilde{\x}}
+\def \xh {\widehat{\x}}
+\def \xh {\widehat{\x}}
+\def \y {\textbf{y}}
+\def \z {\textbf{z}}
+\def \w {\textbf{w}}
+\def \ys {\y^\star}
+\def \zs {\z^\star}
+\def \Gx {\mathcal{G}^\x}
+\def \Gy {\mathcal{G}^\y}
+\def \Gz {\mathcal{G}^\z}
+\def \prox {\textbf{prox}}
+\def \reg {\textsc{Reg}}
+\def \Psib {\boldsymbol{\Psi}}
+\def \psib {\boldsymbol{\psi}}
+
+\usepackage{mathtools}
+\let\oldnorm\norm
+\let\norm\undefined 
+\let\epsilon\varepsilon
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\newcommand\mychoice[1]{\textbf{My selected problem ids: \underline{1,#1}.}}
+
+
+\begin{document}
+\title{\textbf{Advanced Optimization (2024 Fall)\\
+Homework \#2}}
+\author{Student ID, Name, Email}
+\maketitle
+
+\begin{tcolorbox}
+\textbf{Evaluation}: There is a problem section (in total 5 problems, 270pts) and a bonus section (5pts for each hw), and your score is the sum of the problem section and the bonus section. The scoring method for the problem section is as follows: Problem~\ref{sec:T1} (70pts) is asked to solve. Choose 3 of the remaining 4 problems (each with 50pts) to finish. There are two options for the final score evaluation of the problem section:
+\begin{enumerate}
+  \item (\textbf{recommended}) If you choose 4 problems (Problem~\ref{sec:T1} + 3 selected ones, totally 220pts), you can obtain the full score (200pts) once you achieve at least 200pts.
+  \item If you choose 4 problems (totally 220pts) \emph{and finish the remaining one (50pts)}:
+    \begin{enumerate}
+      \item If you haven't achieved 200pts on the chosen 4 problems, back to Case 1.
+      \item If you obtain $(245+X)$pts ($X \ge 0$), the final score will be $(200+X)$pts.
+    \end{enumerate}
+\end{enumerate}
+
+
+\begin{center}
+  \textbf{Attention: You are requested to indicate selected problem ids clearly.} 
+
+  {\color{red}\mychoice{x,x,x}}  \\
+  \texttt{\% replace x,x,x by selected ids (e.g., 2,3,4,5)}\\
+  \texttt{\% x,x,x = 2,3,4 by default if not explicitly specified}
+\end{center}
+\end{tcolorbox}
+
+
+
+\newpage
+\section{[70pts] OOMD for Game and Implementation}
+\label{sec:T1}
+We consider a three-player game, where the strategies of three players are represented by $\x, \y$ and $\z$. We consider the game repeated $T$ times. In round $t$, after all three \mbox{players} \textbf{\emph{simultaneously}} submit their strategies $(\x_t, \y_t, \z_t)$, each player's individual \textbf{\emph{cost}} is \mbox{calculated} using their own cost function. For example, $\x$-player' cost function is denoted as $\Gx:(\x,\y,\z)\mapsto\R$, and $\Gy:(\x,\y,\z)\mapsto\R$ for $\y$-player, $\Gz:(\x,\y,\z)\mapsto\R$ for $\z$-player.
+
+Let $\G(\cdot)\triangleq\Gx(\cdot)+\Gy(\cdot)+\Gz(\cdot)$ denote the total cost for the three players. Ideally, we hope all players can cooperate to achieve the minimum total cost $\G^\textsc{Min} \triangleq \min_{\x,\y,\z}~\G(\x, \y, \z)$. However, a more likely scenario is that each player selfishly tries to minimize their own cost during the game. In this problem, we focus on a quantity: the average total cost of all players, i.e., $\overline{\G}_T\triangleq\frac{1}{T}\sum_{t=1}^T \G(\x_t,\y_t,\z_t)$, and are concerned with the following question :
+\begin{quote}
+  \begin{center}
+  \textit{What condition can a game satisfy to ensure~$\overline{\G}_T$~isn't much worse than~$\G^\textsc{Min}$?} 
+  \end{center}
+\end{quote}
+
+We focus on the \emph{smooth games} defined as follows for simplicity.
+\begin{tcolorbox}[top=0pt, bottom=0pt]
+\begin{myAssume}[Smooth Games]
+    \label{assumption:smooth-game}
+    For the game $\G$, it is called a $(\lambda,\mu)$-smooth game with $\lambda>0$ and $\mu<1$, if there exists a strategy profile $(\xs,\ys,\zs)$ such that the following holds for any strategies $(\x,\y,\z)$:
+    \begin{align}
+    \label{eq:game-condition}
+    \Gx(\xs, \y, \z) + \Gy(\x, \ys, \z) + \Gz(\x, \y, \zs) \le \lambda \cdot \G^\textsc{Min} + \mu \cdot \G(\x, \y, \z).
+  \end{align}
+\end{myAssume}
+\end{tcolorbox}
+Intuitively, in smooth games, any player using her optimal strategy continues to do well, irrespective of other players' strategies. 
+
+In the following problems, define $\reg_T^\x\triangleq \max_\x \sum_{t=1}^{T}\big(\Gx(\x_t,\y_t,\z_t) - \Gx(\x,\y_t,\z_t)\big)$, $\reg_T^\y\triangleq \max_\y \sum_{t=1}^{T}\big(\Gy(\x_t,\y_t,\z_t) - \Gy(\x_t,\y,\z_t)\big)$, and $\reg_T^\z$ is similarly defined.
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} With~\eqref{eq:game-condition}, try to \underline{prove} the following guarantees:
+  \begin{align*}
+    \frac{1}{T}\sum_{t=1}^{T}\G(\x_t, \y_t, \z_t) \le\frac{\lambda}{1-\mu}\G^\textsc{Min} + \frac{1}{(1-\mu)T}\big( \reg_T^\x + \reg_T^\y + \reg_T^\z \big),
+  \end{align*}
+  which means with sublinear regrets, we have the guarantee $\lim_{T\to\infty}\overline{\G}_T\le\frac{\lambda}{1-\mu}\G^\textsc{Min}$, thereby answering the question posed above.
+  \item[(2)] \textbf{[10pts]} In the class, we have learned that Optimistic Online Mirror Descent (OOMD) can lead to fast-rate convergence for two-player zero-sum games. We now consider the three-player game in this problem and assume that each player picks a mixed strategy from $\Delta_d$. Each player has her own tensor to measure cost, that is, $\x$-player has $G^\x\in[0,1]^{d\times d\times d}$, $\y$-player has $G^\y\in[0,1]^{d\times d\times d}$, and $\z$-player has $G^\z\in[0,1]^{d\times d\times d}$. For the tensor $G\in\R^{d\times d\times d}$ and three vectors $\x,\y,\z\in\R^d$, We abbreviate $\sum_{i=1}^d\sum_{j=1}^d\sum_{k=1}^d G_{i,j,k}\x_i \y_j\z_k$ as $G[\x,\y,\z]$. Then, the cost functions for the three players are specified as:
+  \begin{align*}
+    \Gx(\x, \y, \z) \triangleq G^\x[\x,\y,\z],\quad \Gy(\x, \y, \z) \triangleq G^\y[\x,\y,\z],\quad\Gz(\x, \y, \z) \triangleq G^\z[\x,\y,\z].
+  \end{align*}
+  In round $t$, after the three players submit their strategies $\x_t,\y_t$ and $\z_t$, they can observe the gradient of their own cost functions, which is $\nabla_\x \Gx(\x_t,\y_t,\z_t)$ for $\x$-player, $\nabla_\y \Gy(\x_t,\y_t,\z_t)$ for $\y$-player, and $\nabla_\z \Gz(\x_t,\y_t,\z_t)$ for $\z$-player.
+  
+  \underline{Design} an OOMD algorithm with NE-entropy for each of the three players, \underline{prove} that:
+  \begin{align*}
+    \reg_T^\x &\lesssim \frac{1}{\eta^\x} + \eta^\x \sum_{t=2}^{T}\norm{\nabla_\x \Gx(\x_t,\y_t,\z_t) - \nabla_\x \Gx(\x_{t-1},\y_{t-1},\z_{t-1})}_\infty^2 - \frac{1}{\eta^\x}\sum_{t=2}^{T}\norm{\x_t - \x_{t-1}}_1^2, \\
+    \reg_T^\y &\lesssim \frac{1}{\eta^\y} + \eta^\y \sum_{t=2}^{T}\norm{\nabla_\y \Gy(\x_t,\y_t,\z_t) - \nabla_\y \Gy(\x_{t-1},\y_{t-1},\z_{t-1})}_\infty^2 - \frac{1}{\eta^\y}\sum_{t=2}^{T}\norm{\y_t - \y_{t-1}}_1^2, \\
+    \reg_T^\z &\lesssim \frac{1}{\eta^\z} + \eta^\z \sum_{t=2}^{T}\norm{\nabla_\z \Gz(\x_t,\y_t,\z_t) - \nabla_\z \Gz(\x_{t-1},\y_{t-1},\z_{t-1})}_\infty^2 - \frac{1}{\eta^\z}\sum_{t=2}^{T}\norm{\z_t - \z_{t-1}}_1^2, 
+  \end{align*}
+  where $\eta^\x,\eta^\y$ and $\eta^\z$ are the constant step-sizes for each of the three algorithms. We use $\lesssim$ to denote ``asymptotically smaller than'' by dropping constant factors.
+  \item[(3)] \textbf{[10pts]} \underline{Prove} the following inequality:
+    \begin{align*}
+        \norm{\nabla_\x \Gx(\x_t,\y_t,\z_t) - \nabla_\x \Gx(\x_t,\y_{t-1},\z_{t})}_\infty^2 \le \norm{\y_t - \y_{t-1}}_1^2.
+    \end{align*}
+    Then \underline{design} the step-sizes $\eta^\x,\eta^\y,\eta^\z$, and \underline{prove} the following guarantee:
+    \begin{align*}
+        \reg_T^\x + \reg_T^\y + \reg_T^\z \le \O(1).
+    \end{align*}
+  \item[(4)] \textbf{[40pts]}  \underline{Implement} the OMD and OOMD algorithms to solve the game mentioned above, and \underline{attach} the figure comparing the average total cost curves of the two algorithms here. Detailed instructions are available in the \texttt{AOpt-Lab2/AOpt-Lab2.ipynb} jupyter notebook. \underline{Submit \texttt{AOpt-Lab2.ipynb} file along with your homework}. Make sure the results can be checked.
+\end{enumerate}
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+\newpage
+\section{[50pts] Accelerated Composite Optimization}
+
+Consider the following composite optimization within a bounded domain:
+\begin{align*}
+  \min_{\x \in \X} F(\x) \triangleq f(\x) + h(\x),
+\end{align*}
+where both $f(\cdot)$ and $h(\cdot)$ are convex, and $f(\cdot)$ is $L$-smooth w.r.t. $\norm{\cdot}_2$, whereas $h(\cdot)$ is not. We assume that the domain diameter is bounded by $D$, i.e., $\sup_{\x, \y\in\X} \norm{\x - \y}_2 \leq D$.
+
+In class, we have learned a simple accelerated method for smooth convex optimization building on the general framework of optimistic online learning. Can the same approach be applied to the composite optimization?
+
+More specifically, we consider the following weighted online-to-batch conversion:
+\begin{tcolorbox}[top=-10pt, bottom=0pt]
+  \begin{align}
+    \overline{\x}_t = \frac{1}{A_t}\sum_{s=1}^{t}\alpha_s \x_s,\ \text{with} \ A_t = \sum_{s=1}^{t}\alpha_s \ \text{and}\ \alpha_t>0,\forall t\in[T]. \label{eq:weighted-average}
+  \end{align}
+\end{tcolorbox}
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} Try to \underline{prove} that~\eqref{eq:weighted-average} ensures the following reduction:
+  \begin{align}
+    \label{eq:regret-to-rate}
+    F(\overline{\x}_T) - F(\xs) \le \frac{\sum_{t=1}^T\big( \inner{\alpha_t \nabla f(\overline{\x}_t)}{\x_t - \xs} + \alpha_t h(\x_t) - \alpha_t h(\xs) \big)}{A_T}.
+  \end{align}
+  \item[(2)] \textbf{[20pts]} The inequality~\eqref{eq:regret-to-rate} allows us to reduce offline optimization as an online one. Define the online function as $F_t(\x)\triangleq f_t(\x) + h_t(\x)$, where $f_t(\x)\triangleq \inner{\alpha_t \nabla f(\overline{\x}_t)}{\x}, h_t(\x)\triangleq \alpha_t h(\x)$. To this end, we design the following optimistic online learning algorithm:
+  \begin{tcolorbox}[top=-7pt, bottom=1pt]
+    \begin{align}
+      \label{eq:composite-oomd-1}
+      \x_t &= \argmin_{\x\in\X} \Big\{ \eta \big(\inner{M_t}{\x} + h_t(\x)\big) + \frac{1}{2}\norm{\x - \xh_t}_2^2 \Big\} \\
+      \label{eq:composite-oomd-2}
+      \xh_{t+1} &= \argmin_{\x\in\X} \Big\{ \eta \big(\inner{\nabla f_t(\x_t)}{\x} + h_t(\x)\big) + \frac{1}{2}\norm{\x - \xh_t}_2^2 \Big\}
+    \end{align}
+  \end{tcolorbox}
+  \begin{enumerate}
+    \item[(2.i)] \textbf{[10pts]} \underline{Prove} the stability property for the updates~\eqref{eq:composite-oomd-1} and~\eqref{eq:composite-oomd-2}, that is
+    \label{eq:composite-stability}
+    \begin{align*}  
+      \norm{\x_t - \xh_{t+1}}_2 \le \eta\norm{\nabla f_t(\x_t) - M_t}_2.
+    \end{align*}
+    \item[(2.ii)] \textbf{[10pts]} \underline{Prove} the Bregman proximal inequality for the update~\eqref{eq:composite-oomd-2}:
+    \label{eq:composite-bregman}
+    \begin{align*}  
+      \eta \inner{\nabla f_t(\x_t) + \nabla h_t(\xh_{t+1})}{\xh_{t+1} - \xs} \le \frac{1}{2}\norm{\xs - \xh_t}_2^2 - \frac{1}{2}\norm{\xs - \xh_{t+1}}_2^2 - \frac{1}{2}\norm{\xh_{t+1} - \xh_t}_2^2.
+    \end{align*}
+  \end{enumerate}
+  \item[(3)] \textbf{[10pts]} Try to \underline{prove} that, the algorithm using~\eqref{eq:composite-oomd-1} and~\eqref{eq:composite-oomd-2} satisfies:
+  \begin{align*}
+    \sum_{t=1}^T \big( F_t(\x_t) - F_t(\xs) \big) \le \frac{\norm{\u - \xh_1}_2^2}{2\eta} + \eta \sum_{t=1}^{T} \norm{\nabla f_t(\x_t) - M_t}_2^2 - \frac{1}{4\eta}\sum_{t=2}^{T}\norm{\x_t - \x_{t-1}}_2^2.
+  \end{align*}
+  \item[(4)] \textbf{[10pts]} \underline{Design} the weights $\alpha_t$, the step size $\eta$ and the optimism $M_t$, \underbar{prove} that:
+  \begin{align*}
+    F(\overline{\x}_T) - F(\xs) \le \O\left(L\cdot\frac{1}{T^2}\right).
+  \end{align*}
+\end{enumerate}
+
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+
+\newpage
+\section{[50pts] Two-Point Bandit Convex Optimization}
+\label{sec:TPBCO}
+We consider Bandit Convex Optimization (BCO) with two-point feedback. At each round $t$, the online learner can query two points $\mathbf{x}_t^1, \mathbf{x}_t^2\in\mathcal{X}\subseteq \mathbb{R}^d$ , and observe the function values $f_t(\mathbf{x}_t^1)$ and $f_t(\mathbf{x}_t^2)$. The online functions $\{f_t\}_{t=1}^T$ are supposed to be $G$-Lipschitz. The objective is to minimize the following expected regret over $T$ rounds:
+\begin{equation}\label{eq:two-regret}
+  \E\left[\reg_T\right]=\E\left[\sum_{t=1}^T \frac{1}{2}\Big(f_t\left(\mathbf{x}_t^1\right)+f_t\left(\mathbf{x}_t^2\right)\Big)\right]-\min _{\mathbf{x} \in \mathcal{X}} \sum_{t=1}^T f_t(\mathbf{x})
+\end{equation}
+Building on the two-point feedback, we aim to refine the Bandit Gradient Descent algorithm introduced in the course. At each round, we use the observed information to estimate a gradient $\widetilde{g}_t$ and then use it to perform gradient descent:
+\begin{tcolorbox}[top=-1pt]
+  \begin{align*}
+    \mathbf{y}_{t+1}=\Pi_{(1-\alpha) \mathcal{X}}\left[\mathbf{y}_t-\eta \widetilde{\mathbf{g}}_t\right]
+  \end{align*}
+  where $\Pi_{(1-\alpha) \mathcal{X}}$ denotes the projection onto the shrunk set $(1-\alpha)\mathcal{X}$. 
+\end{tcolorbox}
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} A basic idea for gradient estimation is: first uniformly sample from a unit vector $\mathbf{s}_t \in \mathbb{S} \triangleq \left\{\mathbf{x} \in \mathbb{R}^d \mid\|\mathbf{x}\|_2=1\right\}$ at random and submit the following queries: $\mathbf{x}_t^1 = \mathbf{y}_t + \delta \mathbf{s}_t$ and $\mathbf{x}_t^2 = \mathbf{y}_t - \delta \mathbf{s}_t$; and then use the observed values $f_t(\mathbf{x}_t^1)$ and $f_t(\mathbf{x}_t^2)$ to construct the following gradient estimator
+  \begin{equation*}
+    \widetilde{\mathbf{g}}_t=\frac{d}{2 \delta}\left(f_t\left(\mathbf{y}_t + \delta \mathbf{s}_t\right)-f_t\left(\mathbf{y}_t - \delta \mathbf{s}_t\right)\right) \mathbf{s}_t,
+  \end{equation*}
+  \begin{enumerate}
+    \item[(1.i)] \textbf{[5pts]}  Please \underline{prove} that the gradient estimator still satisfies the unbiasedness condition:
+  \begin{equation*}
+  \widehat{f}_t(\mathbf{y}_t) = \mathbb{E}_{\mathbf{v} \in \mathbb{B}}[f_t(\mathbf{y}_t + \delta \mathbf{v})], \quad \mathbb{E}_{\mathbf{s} \in \mathbb{S}}[\widetilde{\mathbf{g}}_t] = \nabla \widehat{f}(\mathbf{y}_t),
+  \end{equation*}
+  where $\mathbb{B}=\left\{\mathbf{x} \in \mathbb{R}^d \mid\|\mathbf{x}\|_2 \leq 1\right\}$ is the unit ball and $\mathbb{S}$ is the unit sphere. Note that it is allowed to directly use Lemma~1 in Lecture~11 (unbiasedness of gradient estimator in one-point BCO).
+  \item[(1.ii)] \textbf{[5pts]}Please \underline{prove} that, the gradient estimator has bounded norm: $\|\widetilde{\mathbf{g}}_t\|_2 \leq Gd$.
+\end{enumerate}
+  \item[(2)] \textbf{[15pts]} Now we aim to analyze the regret of the refined BGD algorithm. Based on the analysis in question (1), we know that the gradient estimator satisfies $\mathbb{E}_{\mathbf{s} \in \mathbb{S}}[\widetilde{\mathbf{g}}_t] = \nabla \widehat{f}(\mathbf{y}_t)$. This implies that the refined BGD algorithm is performing online gradient descent (as if with full information) on the function $\widehat{f}_t$, restricted to the convex set $(1-\alpha) \mathcal{X}$. Thus, when analyzing the regret~\eqref{eq:two-regret}, we aim to relate it to the regret of OGD on $\widehat{f}_t$, namely,
+  \begin{equation*}
+    \sum_{t=1}^T\widehat{f}_t(\mathbf{x}_t) - \sum_{t=1}^T\widehat{f}_t((1-\alpha)\mathbf{x}).
+    \end{equation*}
+We  first consider the single-round regret $\frac{1}{2}\left(f_t(\mathbf{x}_t^1) + f_t(\mathbf{x}_t^2)\right) - f_t(\mathbf{x})$, this regret can be decomposed into five components, each capturing a specific aspect of the algorithm: 
+\begin{equation*}
+  \begin{split}
+    \frac{1}{2}\left(f_t(\mathbf{x}_t^1) + f_t(\mathbf{x}_t^2)\right) - f_t(\mathbf{x}) = \underbrace{\frac{1}{2}\left(f_t(\mathbf{x}_t^1) + f_t(\mathbf{x}_t^2)\right) - f_t(\mathbf{y}_t)}_{\term{a}} + \underbrace{f_t(\mathbf{y}_t) - \widehat{f}_t(\mathbf{y}_t)}_{\term{b}}\\
+    +\underbrace{\widehat{f}_t(\mathbf{y}_t) - \widehat{f}_t((1-\alpha)\mathbf{x})}_{\term{c}}+\underbrace{\widehat{f}_t((1-\alpha)\mathbf{x}) - f_t((1-\alpha)\mathbf{x})}_{\term{d}}+\underbrace{f_t((1-\alpha)\mathbf{x}) - f_t(\mathbf{x})}_{\term{e}}.
+  \end{split}
+\end{equation*}
+\begin{enumerate}
+  \item[(2.i)] \textbf{[5pts]}Please \underline{explain} the meaning of each of these 5 terms. What specific impact does each term represent?
+  \item[(2.ii)] \textbf{[10pts]} Given that $\|\mathbf{x}\|_2 \leq D$ and $f_t$ is $G$-Lipschitz, use the above decomposition to \underline{prove} that the following regret bound holds for all $\mathbf{x}\in\X$,
+  \begin{equation*}
+    \sum_{t=1}^T \frac{1}{2}\left(f_t\left(\mathbf{x}_t^1\right)+f_t\left(\mathbf{x}_t^2\right)\right)-\sum_{t=1}^T f_t(\mathbf{x}) \leq \sum_{t=1}^T \widehat{f}_t\left(\mathbf{y}_t\right)-\sum_{t=1}^T \widehat{f}_t((1-\alpha) \mathbf{x})+3 T G \delta+T G D \alpha.
+  \end{equation*}
+\end{enumerate}
+  \item[(3)] \textbf{[10pts]} We define $h_t(\mathbf{x})\triangleq \widehat{f}_t(\mathbf{x})+\left(\widetilde{\mathbf{g}}_t-\nabla \widehat{f}_t\left(\mathbf{x}_t\right)\right)^{\top}\mathbf{x}$, it is easily seen that $h_t(\mathbf{x})$ is also convex with $\nabla h_t(\mathbf{x}_t) = \widetilde{\mathbf{g}}_t$, which means the refined BGD algorithm is performing deterministic OGD on the function $h_t$ restricted to the convex set $(1-\alpha) \mathcal{X}$. 
+  \begin{enumerate}
+    \item[(3.i)] \textbf{[5pts]} Please \underline{prove} that:
+    \begin{equation*}
+      \sum_{t=1}^T h_t\left(\mathbf{x}_t\right)-\sum_{t=1}^T h_t((1-\alpha)\mathbf{x}) \leq D^2\frac{1}{\eta_T}+G^2d^2\sum_{t=1}^T \eta_t.
+    \end{equation*}
+    \item[(3.ii)] \textbf{[5pts]} Based on the results in (2.ii) and (3.i), please further \underline{prove} that: (\textbf{Hint}: $\mathbb{E}[h_t(\mathbf{x})] = \widehat{f}_t(\mathbf{x})$)
+    \begin{equation*}
+      \E\left[\sum_{t=1}^T \frac{1}{2}\left(f_t\left(\mathbf{x}_t^1\right)+f_t\left(\mathbf{x}_t^2\right)\right)-\sum_{t=1}^T f_t(\mathbf{x})\right] \leq D^2\frac{1}{\eta_T}+G^2d^2\sum_{t=1}^T \eta_t+3 T G \delta+T G D \alpha.
+    \end{equation*}
+  \end{enumerate}
+
+
+  \item[(4)] \textbf{[10pts]} Assume $r\mathbb{B}\subset \mathcal{X}\subset D\mathbb{B}$, Please \underline{design} the learning rate $\eta_t$, $\delta$, $\alpha$ to make sure each step $\mathbf{x}_t^1, \mathbf{x}_t^2 \in\mathcal{X}$ and \underline{prove} the following regret bound.
+  \begin{equation*}
+    \E\left[\sum_{t=1}^T \frac{1}{2}\left(f_t\left(\mathbf{x}_t^1\right)+f_t\left(\mathbf{x}_t^2\right)\right)-\sum_{t=1}^T f_t(\mathbf{x})\right] \leq \frac{3DGd}{2}\sqrt{T}+3G + \frac{GD}{r}.
+  \end{equation*}
+  \item[(5)] \textbf{[5pts]} Notice that in the course, we introduced BCO with single-point feedback, which achieves a regret of $\mathcal{O}(T^{\frac{3}{4}})$. Please \underline{explain} how two-point feedback provides advantages over single-point feedback, enabling us to achieve a regret of $\O(\sqrt{T})$.
+\end{enumerate}
+
+\begin{solution}
+Give your answers here. (中英文均可)
+~\\
+~\\
+~\\
+\end{solution}
+
+
+
+\newpage
+\section{[50pts] Efficient Stochastic Logistic Bandits}
+\label{sec:TPBCO}
+We consider the Stochastic Logistic Bandits (LogB) problem. The reward satisfies 
+$r_t = \mu(X_t^{\top} \theta_*) + \eta_t$, where $\mu(z) = (1 + \exp(-z))^{-1}$, and the noise $\eta_t$ follows a Bernoulli distribution such that $\mathbb{P}(r_t = 1 \mid X_t) = \mu(X_t^{\top} \theta_*)$ and $\mathbb{P}(r_t = 0 \mid X_t) = 1 - \mu(X_t^{\top} \theta_*)$. The learner's goal is to minimize the regret:
+\begin{equation*}
+  \reg_T=\max _{\mathbf{x} \in \mathcal{X}}\sum_{t=1}^T  \mu(\mathbf{x}^{\top} \theta_*)-\sum_{t=1}^T \mu(X_t^{\top} \theta_*).
+\end{equation*}
+
+To simplify the analysis, we assume that the feasible set and the unknown parameter are bounded: for all $X \in \mathcal{X} \subset \mathbb{R}^d$, $\|X\|_2 \leq 1$, and $\|\theta_*\|_2 \leq S$. Furthermore, $\mu(z)$ is $L$-Lipschitz on $z\in[-S, S]$, and its derivative satisfies $\inf_{z \in (-S, S)} \mu^\prime(z) = \kappa$. 
+
+To estimate the unknown parameter $\theta_*$ in LogB, a common approach is to replace the least squares estimator used in LinUCB with the maximum likelihood estimator (MLE) or the following to minimize negative log-likelihood:
+\begin{tcolorbox}[top=-1pt]
+  \begin{align*}
+    \widehat{\theta}_t=\underset{\|\theta\|\leq S}{\arg \min } \sum_{s=1}^t\ell_s(\theta),
+  \end{align*}
+  where $-\ell_s(\theta) = r_s \log \mu\left(X_s^{\top} \theta\right)+\left(1-r_s\right) \log \left(1-\mu\left(X_s^{\top} \theta\right)\right)$.
+\end{tcolorbox}
+However, MLE poses a significant computational challenge in this context, as it does not support online updates. As a result, each decision-making round requires costly recomputation using all past data, leading to scalability issues. To address this, recent advancements suggest modeling the problem as an OCO problem by incrementally feeding the loss functions $\{\ell_s(\theta)\}_{s=1}^t$ into an online learner $\mathcal{B}$. Based on the output $\theta_s$ from $\mathcal{B}$ at each round, we construct a virtual linear reward $z_s = X_s^\top \theta_s$. Using these, we compute the least squares estimator $\widehat{\theta}_t$ over the historical data pairs 
+$\{X_s, z_s\}_{s=1}^t$. This approach allows for efficient online updates at every round. Next, we will prove that this method achieves reliable estimation error guarantees and a favorable regret bound.
+
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} Assume that the online learner $\mathcal{B}$ satisfies the following regret bound: 
+  $\forall \theta, \|\theta\|_2 \leq S, \forall t \geq 1, \sum_{s=1}^t \ell_s(\theta_s) - \ell_s(\theta) \leq B_t$. To construct the UCB for the online estimator, we need to relate the parameter estimation error with the regret $B_t$. Please \underline{prove} the following result: (\textbf{Hint}: Taylor's theorem over $\ell_s(\theta)$.)
+  \begin{equation}\label{eq:taylor}
+    \sum_{s=1}^t\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right)^2 \leq \frac{2}{\kappa} B_t+\frac{2}{\kappa} \sum_{s=1}^t \eta_s\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right).
+  \end{equation}
+  \item[(2)] \textbf{[15pts]} For Eq~\eqref{eq:taylor}, the term $\sum_{s=1}^t \eta_s\left(X_s^{\top}\left(\theta_s-\theta^*\right)\right)$ exhibits a structure similar to the self-normalized concentration inequality introduced in the lecture. Hence, we aim to apply the self-normalized concentration inequality to handle this term.
+  \begin{enumerate}
+    \item[(2.i)] \textbf{[5pts]} Note that the self-normalized concentration inequality requires the noise to be sub-Gaussian. Please \underline{prove} that the noise $\eta_t = r_t - \mu(X_t^\top \theta^*)$ is $R$-sub-Gaussian where $R \leq \frac{1}{2}$. (\textbf{Hint}: Use Hoeffding's lemma.)
+    \item[(2.ii)]\textbf{[5pts]}  Now we know that the noise $\eta_t$ is $R$-sub-Gaussian, try to \underline{prove} that, with probability at least $1-\delta$, the following 
+    holds for any $t \in [T]$: (\textbf{Hint}: convert self-normalized concentration into $1$-dimensional version.)
+    \begin{equation*}
+    \begin{split}
+      {}& \sum_{s=1}^t \eta_s\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right) \\
+      \leq {}& R \sqrt{\left(2+2 \sum_{s=1}^t\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right)^2\right) \cdot \log \left(\frac{1}{\delta} \sqrt{1+\sum_{s=1}^t\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right)^2}\right)}.
+    \end{split}
+    \end{equation*}
+    \item[(2.iii)] \textbf{[5pts]} Substitute the above inequality into~\eqref{eq:taylor}, and further \underline{prove} that, with probability at least $1-\delta$, the following 
+    holds for any $t \in [T]$ (\textbf{Hint}: define $q
+     \triangleq \sqrt{1+\sum_{s=1}^t\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right)^2}$)
+    \begin{equation}\label{eq:online-error}
+      \sum_{s=1}^t\left(X_s^{\top}\left(\theta_s-\theta_*\right)\right)^2 \leq \beta_t^\prime \triangleq 1+\frac{4}{\kappa} B_t+\frac{8 R^2}{\kappa^2} \log \left(\frac{1}{\delta} \sqrt{4+\frac{8}{\kappa} B_t+\frac{64 R^4}{\kappa^4 \cdot 4 \delta^2}}\right).
+    \end{equation}
+  \end{enumerate}
+  \item[(3)] \textbf{[15pts]} Denote $z_s = X_s^\top \theta_s$ as the virtual reward at step $s$. Then we can compute the parameter estimator $\widehat{\theta}_t$ using least squares over the history data pairs $\{X_s, z_s\}_{s=1}^t$ as
+  \begin{tcolorbox}
+    \begin{equation}\label{eq:ls}
+      \widehat{\theta}_t = \argmin_{\theta} \frac{\lambda}{2}\|\theta\|^2_2+\sum_{s=1}^t\left(z_s - X_s^{\top}\theta\right)^2.
+    \end{equation}
+  \end{tcolorbox}
+  Based on Eq~\eqref{eq:online-error} and estimator~\eqref{eq:ls}, let 
+  $V_t = \lambda I_d + \sum_{s=1}^t X_s X_s^\top$. Please \underline{prove} that, with probability at least $1-\delta$, the following holds for any $t \in [T]$: (\textbf{Hint}: closed form of least square~\eqref{eq:ls})
+  \begin{equation}\label{eq:ucb}
+    \|\theta_*-\widehat{\theta}_t\|_{V_{t}}^2\leq \beta_t \triangleq  \lambda S^2 +\beta^\prime_t - \left(\lambda\|\widehat{\theta}_t\|_2^2+\sum_{s=1}^t\left(z_s - X_s^{\top}\widehat{\theta}_t\right)^2\right).
+  \end{equation}
+  \item[(4)] \textbf{[10pts]} Based on the UCB $\beta_t$ in Eq~\eqref{eq:ucb},we design the UCB select criteria as follows,
+\begin{tcolorbox}[top=-1pt]
+    \begin{align}\label{eq:arm-select}
+      X_t =\underset{\mathbf{x} \in \mathcal{X}}{\arg \max }\left\{\left\langle\mathbf{x}, 
+      \widehat{\theta}_{t-1}\right\rangle+\beta_{t-1}\|\mathbf{x}\|_{V_{t-1}^{-1}}\right\}.
+    \end{align}
+  \end{tcolorbox}
+  For the parameter estimator~\eqref{eq:ls} and arm selection criteria~\eqref{eq:arm-select}, please prove that, with probability at least $1-2 \delta$, the following regret bound 
+  holds: (\textbf{Hint}: $\mu(\mathbf{x}^\top \theta_*) -\mu(X_t^{\top} \theta_*)\leq L (\mathbf{x} - X_t)^\top\theta_*$)
+  \begin{equation*}
+    \reg_T=\max _{\mathbf{x} \in \mathcal{X}}\sum_{t=1}^T  \mu(\mathbf{x}^{\top} \theta_*)-\sum_{t=1}^T \mu(X_t^{\top} \theta_*)=\mathcal{O}\left(L \sqrt{\beta_T d T \log T}\right).
+  \end{equation*}
+\end{enumerate}
+\begin{solution}
+Give your answers here. (中英文均可)
+~\\
+~\\
+~\\
+\end{solution}
+
+\newpage
+\section{[50pts] Online Regression with Available Information}
+This problem investigates how to incorporate the available side information to obtain an improved regret bound for online regression. At each round $t \in [T]$, the online learner submits a decision $\x_t \in \X \subseteq \R^d$, and the online function is defined as $f_t(\x_t) = \frac{1}{2}(\x_t^\top \psib_t - y_t)^2$, where $\psib_t \in \Psi \subseteq \R^d$ denotes the feature and $y_t \in \Y \subseteq \R$ denotes the corresponding label. Our goal is to minimize the regret for any $\u \in \X$:
+\begin{align*}
+  \textsc{Reg}_T(\u) \triangleq \sum_{t=1}^T f_t(\x_t) -  \sum_{t=1}^T f_t(\u).
+\end{align*}
+We assume that $y_t \in [-Y, Y]$ holds for all $t \in [T]$.
+
+\begin{itemize}
+  \item[(1)] \textbf{[5pts]} \underline{Prove} that online function $f_t(\x)$ is $\alpha$-exp-concave with $\alpha = \min_{\x \in \X} \big\{\frac{1}{(\x^\top \psib_t - y_t)^2} \big\}$.
+\end{itemize}
+
+\setlength{\leftskip}{0.8em}
+Based on the above result, we know that an $\O\left(\max_{\x \in \X, t \in [T]}\{(\x^\top \psib_t - y_t)^2\} \cdot d\log T\right)$ regret is attainable by employing Online Newton Step when assuming the boundedness of domain diameter and gradient norm. However, this regret may not be favorable when the domain $\X$ or the feature space $\Psi$ is large (the exp-concave parameter $\alpha$ is very small). 
+
+Below, we will resolve the issue using the available information on this problem. Actually, in online regression, the feature $\psib_t$ is available to the online learner \emph{before} submitting the decision $\x_t$~(while the label $y_t$ is definitely unknown now), which means the learner knows part of $f_t(\cdot)$'s information before updating. Hence, we use Optimistic Online Mirror Descent to leverage this available information by treating it as the ``hint'':
+\begin{tcolorbox}
+  \begin{equation}
+    \label{eq:or-omd}
+    \begin{aligned}
+      \x_{t} &= \argmin_{\x \in \R^d} \left\{\frac{1}{2}\left(\x^\top \psib_t\right)^2  + \frac{1}{2}\norm{\x - \xh_{t}}_{\A_{t-1}}^2\right\},\\
+      \xh_{t+1} &= \argmin_{\x \in \R^d} \left\{\frac{1}{2}\left(\x^\top \psib_t - y_t\right)^2 + \frac{1}{2}\norm{\x - \xh_{t}}_{\A_{t-1}}^2\right\},
+    \end{aligned}
+  \end{equation}
+  where $\A_{t-1} = \lambda \I + \sum_{s=1}^{t-1} \psib_s\psib_s^\top$ is the regularized covariance matrix.
+\end{tcolorbox}
+
+\setlength{\leftskip}{0.8em}
+In~\eqref{eq:or-omd}, we have considered the difficult scenario that $\X = \R^d$ (recall that now $\alpha$ can approach $0$). To simplify subsequent presentations, we denote by $h_t(\x) =\frac{1}{2}\left(\x^\top \psib_t\right)^2$, serving as a ``guess'' of $f_t(\x)$ by treating $y_t = 0$.
+
+\setlength{\leftskip}{0em}
+\begin{itemize}
+  \item[(2)] \textbf{[20pts]} \underline{Prove} a property of the online function $f_t(\x)$:
+  \begin{align*}
+    f_t(\x) - f_t(\y) = \inner{\nabla f_t(\x)}{\x - \y} - \frac{1}{2}\norm{\x - \y}_{\psib_t\psib_t^\top}^2.
+  \end{align*}
+  With this property, try to \underline{prove} an intermediate result for the algorithm in~\eqref{eq:or-omd}:
+  \begin{align*}
+    \textsc{Reg}_T(\u) &\leq \sum_{t=1}^T \frac{1}{2}\Big(\norm{\u - \xh_t}^2_{\A_{t-1}}- \norm{\u - \xh_{t+1}}^2_{\A_{t-1}}- \norm{\u - \xh_{t+1}}_{\psib_t\psib_t^\top}^2\Big)\\
+    & \quad + \sum_{t=1}^T \Big(f_t(\x_t)  - f_t(\xh_{t+1}) + h_t(\xh_{t+1}) - h_t(\x_t)\Big).
+  \end{align*}
+  \item[(3)] \textbf{[10pts]} \underline{Prove} the following technical result: 
+  \begin{align*}
+    f_t(\x_t)  - f_t(\xh_{t+1}) + h_t(\xh_{t+1}) - h_t(\x_t) = y_t^2 \psib_t^\top \A_{t}^{-1} \psib_t.
+  \end{align*}
+  \item[(4)] \textbf{[15pts]} \underline{Prove} the final regret bound of the algorithm in~\eqref{eq:or-omd}:
+  \begin{align*}
+    \textsc{Reg}_T(\u) \leq \O\left(\lambda \norm{\u}_2^2 + dY^2 \log(T)\right).
+  \end{align*}
+  Compared to $\O\left(\max_{\x \in \X, t \in [T]}\{(\x^\top \psib_t - y_t)^2\} \cdot d\log T\right)$, the refined regret bound depends on $Y^2$ rather than a potentially large quantity $\max_{\x \in \X, t \in [T]}\{(\x^\top \psib_t - y_t)^2\}$, hence demonstrating the value of employing this side information in online regression. 
+\end{itemize}
+
+
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+\newpage
+\section{[10pts] Bonus}
+You can earn bonus points by pointing out errors in the lecture slides on the course website. Specifically, consider the following three types of errors:
+\begin{tcolorbox}
+    \begin{enumerate}
+    \item[(A)] Technical errors (e.g., incorrect coefficients in formulas), $1$pts each.
+    \item[(B)] Serious typo in presentation (e.g., $AB$ but actually $A^\top B$, $\x A$ but actually $\x^\top A$), $0.5$pts each.
+    \item[(C)] Typos in formula/statement (e.g., writing vector $\x_t$ as $x_t$; grammar/spelling errors), $0.25$pts each.
+    \item[(D)] Other suggestions: like how to better organize the proofs or alternative simplified proofs..., up to 1.5pts each.
+    \end{enumerate}
+\end{tcolorbox}
+\subsection{[5pts] Course second half (Lecture Slides 8-12)}
+\underline{List} the errors and in lecture slides 8-12 and \underline{state} the way to correct. Please clearly indicate which type each error belongs to, with a total score not exceeding 5pts (these scores will be added to HW2).
+\begin{solution}
+  Give your answers here. (中英文均可)
+
+For example, 
+\begin{enumerate}
+    \item[(1)] \textbf{[(A) Technical errors]} Lecture X. Page10. xxx
+    \item[(2)] \textbf{[(B) Serious typo in presentation]} Lecture Y. Page4. yyy $\rightarrow$ zzz
+\end{enumerate}
+~\\
+  ~\\
+  ~\\
+\end{solution}
+
+\subsection{[5pts] Course first half (Lecture Slides 1-7)}
+\underline{List} the errors and in lecture slides 1-7 and \underline{state} the way to correct. Please clearly indicate which type each error belongs to, with a total score not exceeding 5pts (these scores will be added to HW1). 
+
+\begin{solution}
+  Give your answers here. (中英文均可)
+
+For example, 
+\begin{enumerate}
+    \item[(1)] \textbf{[(C) Typos in formula/statement]} Lecture W. Page8. www $\rightarrow$ vvv
+    \item[(2)] \textbf{[(D) Other suggestions]} Lecture V. Page7. It would be better...
+\end{enumerate}
+~\\
+\end{solution}
+
+\newpage
+\section*{Acknowledgements}
+The homework bearing your name must represent your individual contribution. While discussions during the completion of the assignment are permissible, they are conditioned upon the fact that none of the participating individuals have completed the discussed topics. We emphasize that the implementation of key ideas within the assignment must be done independently. \textbf{\color{red}You should extend your acknowledgments to those individuals who have participated in the discussions here}.
+
+This course adopts a zero-tolerance policy toward plagiarism. The grades of students found to have engaged in plagiarism without providing proper citations or acknowledgments will be \textbf{{\color{red}annulled}}. In cases of mutual plagiarism, the grades of \textbf{{\color{red}both}} the plagiarizer and the plagiarized will be \textbf{{\color{red}annulled}}. 
+\end{document}

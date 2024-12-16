@@ -1,0 +1,421 @@
+\documentclass[a4paper]{article}
+\usepackage[UTF8]{ctex}
+\usepackage[margin=1.25in]{geometry}
+\usepackage{color}
+\usepackage{graphicx}
+\usepackage{enumerate}
+\usepackage{hyperref}
+\usepackage{amsfonts, amsmath, amsthm, bm, amssymb}
+\usepackage{tcolorbox}
+\usepackage{nicefrac}
+\usepackage{algorithmic, algorithm}
+
+\numberwithin{equation}{section}
+\theoremstyle{definition}
+\newtheorem*{solution}{Solution}
+\newtheorem*{prove}{Proof}
+\newcommand\inner[2]{\langle #1, #2 \rangle}
+\newcommand\term[1]{\textsc{term}~(\textsc{#1})}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{myLemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{myDef}{Definition}
+\def \D {\mathcal{D}}
+\def \E {\mathbb{E}}
+\def \X {\mathcal{X}}
+\def \O {\mathcal{O}}
+\def \P {\mathcal{P}}
+\def \R {\mathbb{R}}
+\def \g {\textbf{g}}
+\def \p {\boldsymbol{p}}
+\def \u {\textbf{u}}
+\def \x {\textbf{x}}
+\def \xs {\x_\star}
+\def \xt {\tilde{\x}}
+\def \y {\textbf{y}}
+\def \z {\textbf{z}}
+\def \w {\textbf{w}}
+\def \prox {\textbf{prox}}
+\def \reg {\textsc{Reg}}
+
+\usepackage{mathtools}
+\let\oldnorm\norm
+\let\norm\undefined 
+\let\epsilon\varepsilon
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+\newcommand\mychoice[1]{\textbf{My selected problem ids: \underline{1,#1}.}}
+
+
+\begin{document}
+\title{\textbf{Advanced Optimization (2024 Fall)\\
+Homework}}
+\author{Student ID, Name, Email}
+\maketitle
+
+\begin{tcolorbox}
+\textbf{Evaluation}: There are in total 5 problems (270pts). Problem~\ref{sec:APG} (70pts) is asked to solve. Choose 3 of the remaining 4 problems (each with 50pts) to finish. There are two options for the final score evaluation:
+\begin{enumerate}
+  \item (\textbf{recommended}) If you choose 4 problems (Problem~\ref{sec:APG} + 3 selected ones, totally 220pts), you can obtain the full score (200pts) once you achieve at least 200pts.
+  \item If you choose 4 problems (totally 220pts) \emph{and finish the remaining one (50pts)}:
+    \begin{enumerate}
+      \item If you haven't achieved 200pts on the chosen 4 problems, back to Case 1.
+      \item If you obtain $(245+X)$pts ($X \ge 0$), the final score will be $(200+X)$pts.
+    \end{enumerate}
+\end{enumerate}
+
+\begin{center}
+  \textbf{Attention: You are requested to indicate selected problem ids clearly.} 
+
+  {\color{red}\mychoice{x,x,x}}  \\
+  \texttt{\% replace x,x,x by selected ids (e.g., 2,3,4,5)}
+\end{center}
+\end{tcolorbox}
+
+
+
+\newpage
+\section{[70pts] APG Analysis and Implementation}
+\label{sec:APG}
+Consider the following unconstrained composite optimization:
+\begin{align*}
+  \min_{\x \in \mathbb{R}^d} F(\x) \triangleq f(\x) + h(\x),
+\end{align*}
+where both $f(\cdot)$ and $h(\cdot)$ are convex. The function $f(\cdot)$ is $L$-smooth, whereas $h(\cdot)$ is not.
+
+Proximal Gradient~(PG) updates as $\x_{t+1} = \P^h_L(\x_t) \triangleq \prox_{\frac{1}{L} h} (\x_t - \frac{1}{L} \nabla f(\x_t))$, where $\prox$ is the proximal mapping. PG achieves an $\O(1/T)$ convergence rate; however, this rate is suboptimal, analogous to the suboptimality of Gradient Descent (GD) in smooth optimization settings. A natural approach  to improve the convergence rate in composite optimization is to extend Nesterov’s Accelerated Gradient Descent (AGD) method, leading to the development of the Accelerated Proximal Gradient (APG) algorithm:
+\begin{tcolorbox}[top=-1pt]
+  \begin{align*}
+    \x_{t+1} = \P^h_L(\y_t),\quad \y_{t+1} = \x_{t+1} + \beta_t(\x_{t+1} - \x_t),
+  \end{align*}
+  where $\beta_t > 0$ is a time-varying weight of the ``momentum'' term ($\x_{t+1} - \x_t$). 
+\end{tcolorbox}
+
+\begin{enumerate}
+  \item[(1)] \textbf{[15pts]} Try to \underline{design} $\beta_t$ and \underline{prove} the convergence rate of APG:
+  \begin{align*}
+    F(\x_T) - F(\x^\star) \le \O\left(\frac{1}{T^2}\right). 
+  \end{align*}
+  \item[(2)] \textbf{[10pts]} For Lipschitz convex functions, we know that the Gradient Descent (GD) algorithm achieves a convergence rate of $\O(1/\sqrt{T})$. Given the strong performance of the APG method, one may wonder if we can ``hack'' the APG to obtain a faster convergence rate for Lipschitz convex functions. 
+  
+  Specifically, for the convex and Lipschitz optimization  $\min_{\x \in \R^d} h(\x)$, we can rewrite it as a composite optimization $\min_{\x \in \R^d} f(\x) + h(\x)$, where $f(\x) = 0$ is convex and $0$-smooth function, satisfying the requirements of APG. As such, it seems that the result of APG directly implies an $\O(1/T^2)$ convergence rate for Lipschitz convex function $h(\x)$. Even $L=0$ may cause trouble in the proximal mapping, we can add a small $\epsilon$ to rectify the issue. Is this idea correct? Give your answer, and \underline{briefly provide the reason}. 
+  \item[(3)] \textbf{[5pts]} To further understand the APG, let us consider a practical application: background modeling from videos. Suppose we are given a data matrix $D\in\mathbb{R}^{m\times d}$, which is expected to be decomposed as
+  \begin{align*}
+    D = L_0 + S_0,
+  \end{align*}
+  where $L_0 \in \R^{m\times d}$ has low rank and $S_0 \in \R^{m \times d}$ is sparse. For example, if the data matrix $D$ represents a sequence of frames from a monitoring video, the background variations~$L_0$ can be modeled as a low-rank structure because of the correlation across frames, while moving foreground objects~$S_0$ can be represented as sparse components.
+  
+  To achieve this goal, we formulate the following optimization problem:
+  \begin{align}
+    \label{eq:objective}
+    \min_{L, S\in\mathbb{R}^{m\times d}} \frac{1}{2}\norm{D - L - S}_\text{F}^2 + \mu \norm{L}_* + \lambda \norm{S}_1,
+  \end{align}
+  where $\mu,\lambda>0$ are hyperparameters, $\norm{A}_*=\sum_{i}\sigma_i(A)=\text{tr}(\sqrt{A^\top A})$ denotes the nuclear norm to impose the low-rank requirement on the matrix $A$, and $\norm{A}_1=\sum_{ij}|A_{ij}|$ denotes the $\ell_1$-norm to impose the sparsity requirement on the matrix $A$.
+  
+  To solve~\eqref{eq:objective}, we can convert it into a composite optimization problem, where the optimization variable is $\mathbf{X} \triangleq (X^L, X^S)\in\mathbb{R}^{m\times d}\times \mathbb{R}^{m\times d}$ and the corresponding composite functions are  $f(\mathbf{X})=\frac{1}{2}\norm{D - X^L - X^S}_\text{F}^2$ and $h(\mathbf{X})=\mu \norm{X^L}_* + \lambda \norm{X^S}_1$. Now the optimization problem becomes
+  \begin{align*}
+    \min_{\mathbf{X}\in\mathbb{R}^{m\times d}\times \mathbb{R}^{m\times d}} f(\mathbf{X}) + h(\mathbf{X}).
+  \end{align*}
+  Note that both $f(\cdot)$ and $h(\cdot)$ are convex, and $f(\cdot)$ is $L_f$-smooth w.r.t. the $\norm{\cdot}$ norm (i.e. $\norm{\mathbf{X}}\triangleq\sqrt{\norm{X^L}_{\text{F}}^2+\norm{X^S}_{\text{F}}^2}$).
+  
+  \underline{Compute} the smoothness parameter $L_f$ of $f(\cdot)$ in this problem.
+
+  \item[(4)] \textbf{[40pts]} We can further use the APG algorithm to solve the background modeling from the video problem. \underline{Implement} the PG and APG algorithms, \underline{compare} the loss curves of PG and APG and \underline{attach} the figure here. Detailed instructions are available in the \texttt{AOpt-Lab1/AOpt-Lab1.ipynb} jupyter notebook. Please make sure to export the completed ipynb file as an HTML file. Ensure that your outputs can be seen in the HTML file, and \underline{\emph{submit the HTML file along with your homework}}.
+\end{enumerate}
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+\newpage
+\section{[50pts] Non-convex Opt for Smooth Functions}
+We consider the unconstrained non-convex optimization problem $\min_{\x \in \mathbb{R}^d} f(\x)$, where we assume $f(\cdot)$ is $L$-smooth. 
+In class, we consider the convergence rate to a minimum to evaluate algorithms' performances. However, for non-convex functions, finding an exact optimal point is often challenging. Thus, we instead focus on the convergence rate to an $\epsilon$-stationary point. Formally, we call $\x$ an $\epsilon$-stationary point if the following is satisfied:
+\begin{align*}
+  \norm{\nabla f(\x)}_2 \leq \epsilon.
+\end{align*}
+
+In the subsequent subproblems, we will analyze the gradient descent~(GD) algorithm, prove the $\O(1/\sqrt{T})$ convergence rate to an $\epsilon$-stationary point with deterministic feedback, and the $\O(1/T^{1/4})$ convergence rate with stochastic feedback. 
+
+\begin{tcolorbox}
+  In~(1) and~(2) subproblems, we will analyze GD with deterministic feedback, where the gradient $\nabla f(\x_t)$ at each point $\x_t$ can be fully observed and GD updates as:
+\begin{align}
+  \label{eq:non-convex-gd-deterministic}
+  \x_{t+1} = \x_t - \eta \nabla f(\x_t).
+\end{align}
+\end{tcolorbox}
+
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} \underbar{Design} an appropriate step size $\eta$ ($L$ is known), and \underbar{prove} that with the designed step size, GD in~\eqref{eq:non-convex-gd-deterministic} satisfies:
+  \begin{align*}
+    f(\x_{t+1}) \leq f(\x_t) - \frac{1}{2L}\norm{\nabla f(\x_t)}_2^2.
+  \end{align*}
+  \item[(2)] \textbf{[10pts]} \underline{Prove} that, GD in~\eqref{eq:non-convex-gd-deterministic} with $\eta$ designed in subproblem~(1) guarantees:
+    \begin{align*}
+      \sum_{t=1}^T\norm{\nabla f(\x_t)}_2^2 \leq \O\left(L\Delta\right),
+    \end{align*}
+    where $\Delta \triangleq f(\x_1) - \min_{\x \in \R^d} f(\x)$. Furthermore, let $\xt$ be a decision uniformly selected from $\x_1, \dots, \x_T$, then, with the designed step size, \underline{prove} that:
+    \begin{align*}
+      \E\left[\norm{\nabla f(\xt)}_2\right] \leq \O\left(\frac{\sqrt{L\Delta}}{\sqrt{T}}\right),
+    \end{align*}
+    i.e., the convergence rate to an $\epsilon$-appropriate point is $\O(1/\sqrt{T})$.
+\end{enumerate}
+\begin{tcolorbox}
+  In~(3) and~(4) subproblems, we will analyze GD under stochastic feedback, where at each round $t$, the algorithm provides a decision $\x_t$, and only a noisy gradient $\g_t \in \R^d$ can be observed. We assume that the noisy gradient is:
+  \begin{align*}
+    \text{(i) unbiased: } \E\left[\g_t\right] = \nabla f(\x_t); \text{(ii) variance-bounded: } \E\left[\norm{\g_t - \nabla f(\x_t)}_2^2\right] \leq \sigma^2.
+  \end{align*}
+  Additionally, we assume (iii) the evaluations of gradients are independent across iterations. Accordingly, GD updates as:
+\begin{align}
+  \label{eq:non-convex-gd-stochastic}
+  \x_{t+1} = \x_t - \eta \g_t.
+\end{align}
+\end{tcolorbox}
+\begin{enumerate}
+  \item[(3)] \textbf{[15pts]} \underbar{Prove} that GD in~\eqref{eq:non-convex-gd-stochastic} satisfies:
+  \begin{align*}
+    \E[f(\x_{t+1})] \leq \E[f(\x_t)] + \left(\frac{L \eta^2}{2} - \eta\right) \E[\norm{\nabla f(\x_t)}_2^2] + \frac{L\eta^2}{2}\sigma^2,
+  \end{align*}
+  where the expectation is taken with respect to the randomness of stochastic gradients.
+
+  (\textbf{Hint:} The stochastic gradient is unbiased.)
+  \item[(4)] \textbf{[15pts]} \underbar{Prove} that when $\eta \leq \frac{1}{L}$, GD in~\eqref{eq:non-convex-gd-stochastic} satisfies:
+    \begin{align*}
+      \E\left[\sum_{t=1}^T\norm{\nabla f(\x_t)}_2^2\right]\leq \O\left(  \frac{\Delta}{\eta} + \eta LT\sigma^2 \right).
+    \end{align*}
+    
+    Let $\xt$ be a decision uniformly selected from $\x_1, \dots, \x_T$. Then, try to \underbar{design} a step size $\eta$~($L$ and $\sigma$ is known), and \underline{prove} that, with the designed step size:
+    \begin{align*}
+     \E[\norm{\nabla f(\xt)}_2] \leq \O \left(\frac{\sqrt{L\Delta}}{\sqrt{T}} + \frac{\sqrt{\sigma}}{T^{1/4}}\right),
+    \end{align*}
+    which indicates that the convergence rate to an $\epsilon$-appropriate point is $\O(1/\sqrt{T} + \sqrt{\sigma}/T^{1/4})$, and when $\sigma = 0$, i.e., there is no randomness, the above result recovers the $\O(1/\sqrt{T})$ convergence rate with deterministic feedback.
+
+    (\textbf{Hint:} You may need to consider a case-by-case analysis for step size tuning.)
+\end{enumerate}
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+\newpage
+\section{[50pts] OMD with Time-Varying Comparators}
+In this problem, we are interested in benchmarking the performance of Online Gradient Descent~(OGD) against time-varying comparators:
+\begin{align*}
+   \sum_{t=1}^T f_t(\x_t) - \sum_{t=1}^T f_t(\u_t),
+\end{align*}
+where $\u_1, \u_2, \dots, \u_T\in \X$ are arbitrary comparators in the feasible domain. By choosing $\u_1 = \dots = \u_T = \xs$, where $\xs \in \argmin_{\x \in \X} \sum_{t=1}^T f_t(\x)$, this measure recovers the standard regret discussed in the class. While the flexibility in choosing $\u_1, \dots, \u_T$ allows for the algorithm to handle more complex settings. 
+
+During the subsequent subproblems, our analysis will be centered on OGD:
+\begin{tcolorbox}[top=-3pt]
+  \begin{align}
+    \x_{t+1} = \Pi_{\X}\left[\x_t  - \eta \nabla f_t(\x_t)\right].\label{eq:omd-switching}
+  \end{align}
+\end{tcolorbox}
+We assume that the domain diameter is bounded by $D$, i.e., $\sup_{\x, \y} \norm{\x - \y}_2 \leq D$, and the gradient norm is bounded by $G$, i.e., $\norm{\nabla f_t(\x)}_2 \leq G, \forall t \in [T], \x \in \X$. For simplicity, we assume $f_t(\x) \in [0, GD], \forall \x \in \X, t\in [T]$.
+\begin{enumerate} 
+  \item[(1)] \textbf{[5pts]} Try to \underline{prove} the following property:
+  \begin{align*}
+    \norm{\x - \y}_2^2 - \norm{\x - \z}_2^2 \leq 4D\norm{\y - \z}_2, \forall \x, \y, \z \in \X.
+  \end{align*}
+  \item[(2)] \textbf{[10pts]} Try to \underline{prove} that OGD in~\eqref{eq:omd-switching} satisfies the following regret bound:
+  \begin{align}
+    \label{eq:switching-ogd-bound}
+    \sum_{t=1}^T f_t(\x_t) - \sum_{t=1}^T f_t(\u_t) \leq \frac{4DQ_T + D^2}{2\eta} + \frac{\eta G^2T}{2} ,
+  \end{align}
+  where we introduce $Q_T = \sum_{t=2}^T \norm{\u_t - \u_{t-1}}_2$ in above, a quantity measuring the changing degree in the comparators.
+  \item[(3)] \textbf{[20pts]} If we could know the exact value of $Q_T$ in advance, by setting $\eta = \O\big(\sqrt{\frac{1+Q_T}{T}}\big)$, we can obtain the regret bound of $\O(\sqrt{(1+Q_T)T})$. However, as we expect our method to hold consistently for any $\u_1, \dots, \u_T$, assuming the knowledge of $Q_T$ is unrealistic. 
+  
+  Instead of tuning a single algorithm, we can estimate the value of $Q_T$ and run multiple instances of the OGD algorithm to offset the uncertainty. At last, we will combine the decisions from different instances via Hedge. We describe this method in below:
+  \begin{tcolorbox}[top=-7pt, bottom=1pt]
+    \begin{align}
+      \mathcal{H} &= \left\{\eta_i = 2^{i-1} \cdot \frac{D}{G\sqrt{T}}: i \in [N] \right\}\label{eq:possible-step-sizes}\\
+      \x_{t+1, i} &= \argmin_{\x \in \X} \big\{\inner{\nabla f_t(\x_{t, i})}{\x} + \frac{1}{2\eta_i}\norm{\x - \x_{t,i}}_2^2 \big\}, &\forall i \in [N] \label{eq:switching-ogd-update}\\
+      p_{t+1,i} &\propto \exp\Big(-\epsilon \sum_{s=1}^t f_s(\x_{s,i})/GD\Big), \p_1 = \frac{1}{N}\cdot \boldsymbol{1} &\forall i \in [N].\label{eq:switching-hedge-update}
+    \end{align}
+  \end{tcolorbox}
+  \begin{tcolorbox}[top=-7pt, bottom=1pt]
+    \begin{align}
+      \label{eq:switching-combine}
+      \x_{t+1} = \sum_{i=1}^N p_{t+1,i}\x_{t+1,i}
+    \end{align}
+  \end{tcolorbox}
+  In above, $N = \lceil \frac{1}{2}\log_2(1+4T) \rceil$ denotes the number of running OGD instances.~\eqref{eq:possible-step-sizes} is the possible step sizes, and for each $\eta_i \in \mathcal{H}$, we employ an OGD with the specific step size $\eta_i$, as presented in~\eqref{eq:switching-ogd-update}. Eq.~\eqref{eq:switching-hedge-update} calculates the weights for combining via Hedge taught in the class. Finally, in Eq~\eqref{eq:switching-combine}, $\x_{t+1}$ is the final decision we submit.
+  \begin{enumerate}
+    \item[(3.i)] \textbf{[5pts]} The ideal step size for Eq.~\eqref{eq:switching-ogd-bound} is:
+    \begin{align*}
+      \eta_\star = \sqrt{\frac{4DQ_T+D^2}{G^2T}}.
+    \end{align*}
+    \underbar{Prove} that given any arbitrary comparators $\u_1, \cdots, \u_T$, there exists $\eta_{i_\star} \in \mathcal{H}$, such that the following inequality holds:
+    \begin{align*}
+      \eta_{i_\star} \leq \eta_\star \leq 2\eta_{i_\star}.
+    \end{align*}
+    \item[(3.ii)] \textbf{[5pts]} \underbar{Design} the learning rate $\epsilon$ in~\eqref{eq:switching-hedge-update} and \underbar{prove} that:
+    \begin{align*}
+      \sum_{t=1}^T f_t(\x_t) - \sum_{t=1}^T f_t(\x_{t,i}) \leq \O\left(\sqrt{T}\right), \forall i \in [N],
+    \end{align*}
+    where in above, we treat doubly-logarithmic factor $\O(\log\log T)$ as a constant.
+    \item[(3.iii)] \textbf{[10pts]} \underbar{Prove} that, with the learning rate $\epsilon$ satisfying the requirement in problem (3.ii), decisions $\{\x_t\}_{t=1}^T$ generated by~\eqref{eq:switching-combine} guarantee:
+    \begin{align*}
+      \sum_{t=1}^T f_t(\x_t) - \sum_{t=1}^T f_t(\u_t) \leq \O\left(\sqrt{(1+Q_T)T}\right),
+    \end{align*}
+    for any arbitrary comparators $\u_1, \dots, \u_T \in \X$.
+  \end{enumerate}
+  \item[(4)] \textbf{[15pts]} Method described from~\eqref{eq:possible-step-sizes} to~\eqref{eq:switching-combine} requires multiple queries of gradients~($\nabla f_t(\x_{t,i})$) and function values~($f_t(\x_{t,i})$) at each time. Can you improve this method and develop a more efficient one that only queries one gradient $\nabla f_t(\x_t)$ at each time? 
+  \underbar{Present} your method in a format similar to Eq.~\eqref{eq:possible-step-sizes} to Eq.~\eqref{eq:switching-combine}, \underbar{specifying} the corresponding step sizes and learning rate. \underbar{Highlight} how you will analyze the regret from the combination and the regret for the running instance.
+\end{enumerate}
+
+\begin{solution}
+Give your answers here. (中英文均可)
+~\\
+~\\
+~\\
+\end{solution}
+
+
+
+
+\newpage
+\section{[50pts] Learning Rate Tuning in (Adaptive) Hedge}
+\label{sec:PEA}
+Consider the Prediction with Experts' Advice (PEA) problem, where we denote $\boldsymbol{\ell}_{t}\in[0, 1]^N$ to be the loss vector at time $t\in[T]$, and the domain is the simplex $\Delta_N$. One of the classic PEA algorithms is Hedge, which updates the weights as follows,
+\begin{tcolorbox}[top=-8pt]
+  \begin{align}
+    \label{eq:Hedge-formula}
+    p_{t+1, i} \propto \exp(-\eta L_{t, i}), \forall i \in [N],   
+  \end{align}
+  where $L_{t, i}=\sum_{s=1}^t \ell_{s, i}$ is the cumulative loss of the $i$-th expert. 
+\end{tcolorbox}
+
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} \underline{Prove} that the Hedge algorithm with the learning rate $\eta$ ensures that:
+  \begin{align*}
+    \sum_{t=1}^T \inner{\p_t}{\boldsymbol{\ell}_t} - L_{T, i^\star} \leq \frac{\ln N}{\eta} + \eta \sum_{t=1}^T \langle \boldsymbol{p}_t, \boldsymbol{\ell}_t \rangle,
+  \end{align*}
+  where $L_{T, i^\star} = \min_{i\in[N]} L_{T, i}$. Then further \underline{prove} that the regret can be bounded by $\O(\sqrt{T\log N})$ with the optimal tuning $\eta$ when $T$ is given.
+  \item[(2)] \textbf{[15pts]} The Hedge algorithm achieves a regret bound of $\O(\sqrt{T\log N})$ with optimal tuning of $\eta$, provided that $T$ is known in advance. However, what if the total iterations $T$ are unknown? One of the approaches to address it is to employ time-varying learning rates. However, this approach requires a new analysis and redesign of the algorithm itself. In the following, we instead aim to develop a tuning strategy that leverages the results studied so far in a black-box manner to overcome it, without the need for the time-varying learning rates design.
+  
+  The approach is to start with an initial guess for $T$, and whenever the actual number of iterations exceeds this guess, we double the guess and restart the algorithm. The main idea is summarized in Algorithm~\ref{alg:Hedge} (with $\textbf{0}$ being the all-zero vector). Two blanks, (i) and (ii), remain for you to \underline{fill in}. Then try to \underline{prove} that Algorithm~\ref{alg:Hedge} ensures $\O(\sqrt{T\log N})$ for all $T$. 
+  
+  (\textbf{Hint}: Consider the regret between two resets and take the summation of them.)
+  \resizebox{0.9\linewidth}{!}{%
+  \begin{minipage}{\linewidth}
+  \begin{algorithm}[H]
+    \caption{Hedge with Black-box Tuning}
+    \label{alg:Hedge}
+    \begin{algorithmic}[1]
+    \STATE \textbf{Initialization:} Set $L_0 = \textbf{0}, T_0 = 1, \eta = \sqrt{(\ln N) / T_0}$.
+    \FOR{$t = 1, 2, \ldots$}
+      \STATE Compute $\boldsymbol{p}_{t}$ by~\eqref{eq:Hedge-formula}
+      \STATE Play $\boldsymbol{p}_t$ and receive $\boldsymbol{\ell}_t$
+      \STATE $L_t = L_{t-1} + \boldsymbol{\ell}_t$
+      \IF{$t = T_0$}{
+        \STATE $L_t = \textbf{0}, \eta = \underline{\quad(\text{i})\quad}$  
+        \STATE $T_0 \leftarrow \underline{\quad(\text{ii})\quad}$
+      }
+      \ENDIF
+    \ENDFOR
+    \end{algorithmic}
+  \end{algorithm}
+  \end{minipage}%
+  }
+    
+  \item[(3)] \textbf{[15pts]} Beyond achieving the regret bound of $\O(\sqrt{T\log N})$, we are interested in obtaining a more adaptive bound that replaces the dependence of $T$ by $L_{T, i_\star}$. This type of bound in $\O(\sqrt{L_{T, i_\star}\log N})$ is known as ``small-loss'' bound, where the algorithm's performanc scales with the cumulative loss of the best expert $i_\star$.
+  
+  \underline{Prove} that Hedge with fixed learning rate $\eta$ ensures that
+    \begin{align*}
+      \sum_{t=1}^T \langle \boldsymbol{p}_t, \boldsymbol{\ell}_t \rangle - L_{T, i^\star} \le \frac{1}{1-\eta} \left( \frac{\ln N}{\eta} + \eta L_{T, i^\star} \right),
+    \end{align*}
+    where the tuning $\eta=\min\{\frac{1}{2},\sqrt{(\ln N)/L_{T,i^\star}}\}$ achieves $\O(\sqrt{L_{T, i^\star}\log N} + \log N)$. However, the quantity $L_{T,i^\star}$ is unknown in advance; nonetheless, one can still use the same tuning idea presented previously to achieve the same bound.
+    
+    Try to \underline{design} a tuning strategy similar to the spirit of subproblem~(2), such that the bound $\O(\sqrt{L_{T, i^\star}\log N} + \log N)$ can be obtained without knowing $L_{T,i^\star}$ in advance.
+    
+  \item[(4)] \textbf{[10pts]} Try to \underline{prove} the regret bound $\O(\sqrt{L_{T, i^\star}\log N} + \log N)$ of the method you have designed in subproblem~(3).
+\end{enumerate}
+\begin{solution}
+  Give your answers here. (中英文均可)
+  ~\\
+  ~\\
+  ~\\
+\end{solution}
+
+
+
+\newpage
+\section{[50pts] OMD with a Stabilizer}
+\label{sec:OMD-UBD}
+The classic Online Mirror Descent~(OMD) algorithm follows the below update formula:
+\begin{tcolorbox}[top=-7pt, bottom=1pt]
+  \begin{align}
+    \label{eq:stabilizer-omd}
+    \x_{t+1} = \argmin_{\x \in \X} \big\{\eta_t \inner{\nabla f_t(\x_t)}{\x} + \D_{\psi}(\x, \x_{t}) \big\}.
+  \end{align}
+\end{tcolorbox}
+A similar online algorithm, Follow the Regularized Leader~(FTRL), updates as:
+\begin{tcolorbox}[top=-7pt, bottom=1pt]
+\begin{align}
+  \label{eq:stabilizer-ftrl}
+  \x_{t+1} = \argmin_{\x \in \X} \Big\{\eta_t \sum_{s=1}^{t} \inner{\nabla f_s(\x_s)}{\x}+ \psi(\x) \Big\}.
+\end{align}
+\end{tcolorbox}
+During the course, we studied that OMD and FTRL are equivalent under certain conditions when employing the same fixed step size. However, in general, they are different particularly when the step size can change over time, and we now investigate the difference.
+\begin{enumerate}
+  \item[(1)] \textbf{[10pts]} We set the regularizer $\psi(\x) = \frac{1}{2}\norm{\x - \x_1}_2^2$, and corresponding step sizes $\eta_{t+1} \leq \eta_{t}, \forall t\in[T]$ for OMD and FTRL in~\eqref{eq:stabilizer-omd} and~\eqref{eq:stabilizer-ftrl}. Under these conditions, try to \underbar{prove} that OMD presented in~\eqref{eq:stabilizer-omd} guarantees that:
+  \begin{align*}
+    \sum_{t=1}^T f_t(\x_t)-\sum_{t=1}^T f_t(\xs) \leq \O\left(\frac{\max_{t \in [T]}\norm{\x_t-\xs}_2^2}{\eta_T}+ \sum_{t=1}^T \eta_{t}\norm{\nabla f_t(\x_t)}_2^2\right),
+  \end{align*}
+  where $\xs \in \argmin_{\x \in \X}\sum_{t=1}^T f_t(\x)$. 
+  
+  Additionally, \underline{prove} the following regret bound for FTRL~presented in~\eqref{eq:stabilizer-ftrl}:
+  \begin{align*}
+        \sum_{t=1}^T f_t(\x_t)-\sum_{t=1}^T f_t(\xs) \leq \O\left(\frac{\norm{\x_1-\xs}_2^2}{\eta_{T-1}}+ \sum_{t=1}^T \eta_{t-1}\norm{\nabla f_t(\x_t)}_2^2\right).
+  \end{align*}
+
+  \item[(2)] \textbf{[10pts]} In subproblem~(1), we notice that the regret bound for OMD depends on the factor $\max_{t \in [T]}\norm{\x_t-\xs}_2^2$, which is challenging to analyze further and could be arbitrarily large in some cases. While for FTRL, the factor $\norm{\x_1-\xs}_2^2$ shown in the bound is irrelevant to the decision process, and could be small if we choose a good starting point with prior knowledge. Next, we consider a specific setting where this point could lead to significantly different results.
+  
+  Consider the Prediction with Experts' Advice~(PEA) setting, where the domain is $\mathcal{X} = \Delta_N$. We often choose $\psi$ as the negative entropy function, and in this case the induced Bregman divergence $\D_{\psi}(\cdot, \cdot)$ becomes the well-known KL-divergence. We set the starting point as $\x_1 = \left[1/N, \ldots, 1/N\right]$. With this setup, try to \underline{prove} that:
+  \begin{align*} 
+    \sup_{\x \in \X} \D_{\psi}(\x, \x_1) \leq \ln N, \qquad \sup_{\x, \y \in \X} \D_{\psi}(\x, \y) = +\infty. 
+  \end{align*}
+
+
+  \item[(3)] \textbf{[15pts]} We expect that OMD can exhibit similarly desirable properties as FTRL. For this purpose, we consider the following modified OMD under a simpler OCO setting:
+  \begin{tcolorbox}[top=-6pt]
+    \begin{align*}
+      \x_{t+1} = \argmin_{\x \in \X} \left\{\eta_t \inner{\nabla f_t(\x_t)}{\x} + \frac{1}{2}\norm{\x - \x_t}_2^2 + \Big(\frac{\eta_t}{\eta_{t+1}} - 1\Big)\norm{\x - \x_1}_2^2 \right\}.
+    \end{align*}
+  \end{tcolorbox}
+  In above, we introduce a stabilizer~(the last term in above) to the update formula. In a sense, if $\eta_t = \eta_{t+1}$, which recovers to the fixed step size setting, this regularizer becomes zero. However, if the step sizes decrease too rapidly, then $\frac{\eta_t}{\eta_{t+1}} - 1 > 0$ will become larger and the stabilizer will ``drag'' the decision closer to $\x_1$. 
+
+  Try to \underline{prove} the following inequality:
+  \begin{align*}
+    \inner{\nabla f_t(\x_t)}{\x_t - \xs}&\leq \frac{1}{2\eta_t}\left(\norm{\x_t- \xs}_2^2 -\norm{\x_{t+1}- \xs}_2^2 -  \norm{\x_t- \x_{t+1}}_2^2\right) \\
+    &\quad + \inner{\nabla f_t(\x_t)}{\x_t - \x_{t+1}} + \phi(\xs)-\phi(\x_{t+1}),
+  \end{align*}
+  where we define $\phi(\x) = (\frac{1}{\eta_{t+1}} - \frac{1}{\eta_t})\norm{\x - \x_1}^2_2$.
+
+  (\textbf{Hint:} $\phi(\x)$ is convex.)
+  \item[(4)] \textbf{[15pts]} Assume that $\eta_{t+1} \leq \eta_{t}, \forall t\in[T]$, \underline{prove} that the following regret bound for OMD with stabilizer:
+  \begin{align*}
+          \sum_{t=1}^T f_t(\x_t)-\sum_{t=1}^T f_t(\u) \leq \O\left(\frac{\norm{\x_1 - \xs}_2^2}{\eta_{T+1}} + \sum_{t=1}^T \eta_{t}\norm{\nabla f_t(\x_t)}_2^2 \right).
+  \end{align*}
+  (\textbf{Hint:} Think about which terms contribute to $\max_{t \in [T]}\norm{\x_t-\xs}_2^2$.)
+\end{enumerate}
+
+\begin{solution}
+Give your answers here. (中英文均可)
+~\\
+~\\
+~\\
+\end{solution}
+
+\newpage
+\subsubsection*{Acknowledgements}
+The homework bearing your name must represent your individual contribution. While discussions during the completion of the assignment are permissible, they are conditioned upon the fact that none of the participating individuals have completed the discussed topics. We emphasize that the implementation of key ideas within the assignment must be done independently. \textbf{\color{red}You should extend your acknowledgments to those individuals who have participated in the discussions here}.
+
+This course adopts a zero-tolerance policy toward plagiarism. The grades of students found to have engaged in plagiarism without providing proper citations or acknowledgments will be \textbf{{\color{red}annulled}}. In cases of mutual plagiarism, the grades of \textbf{{\color{red}both}} the plagiarizer and the plagiarized will be \textbf{{\color{red}annulled}}. 
+\end{document}
