@@ -27,7 +27,7 @@ $$\sum_{t=1}^T\langle\boldsymbol{p}_t,\boldsymbol{\ell}_t\rangle-\min_{i\in[N]}\
 $by$ setting $\eta = \min \left \{ \frac 12, \sqrt {\frac {\ln N}{L_{T, i^{\star }}}}\right \} , we$ have the following $small- loss$ regret $bound.$
 $$\mathrm{Regret}_T=\mathcal{O}\left(\sqrt{L_{T,i^\star}\log N}+\log N\right).$$
 
-$( 1) \textit{ adaptivity:  when }L_{T, i^* }= \mathcal{O} ( 1)$,the regret bound is $\mathcal{O}(\log N)$
+$( 1) \textit{ adaptivity:  when }L_{T, i^* }= \mathcal{O} (1)~or~0$,the regret bound is $\mathcal{O}(\log N)$
 
 $( 2) \textit{ robustness:  when }L_{T, i^* }= \mathcal{O} ( T)$,the regret bound is $\mathcal{O}(\sqrt T\log N)$ , 与之前推导的minimax结果相同
 ## 2.2 Self-confident Tuning
@@ -42,4 +42,15 @@ $$\begin{aligned}
  & where \; \tilde{L}_t=\sum_{s=1}^t\langle\boldsymbol{p}_s,\boldsymbol{\ell}_s\rangle\text{ is cumulative loss the learner suffered at time t.}
 \end{aligned}$$
 - ![alt text](image.png)
+
+# Part 3. Small-loss for OCO
+
+## 3.1 Small-loss quantity for OCO
+
+## 3.2 Small-loss OGD and self-confident tuning
+
+
+
+
+
 

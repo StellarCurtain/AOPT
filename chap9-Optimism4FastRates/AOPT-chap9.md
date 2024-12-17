@@ -64,6 +64,7 @@ $Reg_T^\mathbf{x} = Reg_T^\mathbf{y} = \mathcal{O} ( \sqrt T)$,即有$\mathcal{O
 ## 1.4 Faster Convergence via Adaptivity
 - 使用Optimistic Online Mirror Descent (OOMD)算法,以获得更快的收敛速率.
 ![alt text](image-2.png)
+
 # Part 2. Accelerated Methods
 
 ## 2.1 Weighted Online-to-Batch Conversion

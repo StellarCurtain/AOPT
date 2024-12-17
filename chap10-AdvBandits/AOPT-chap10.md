@@ -29,13 +29,13 @@
 
 
 
+# Part 3. Bandit Convex Optimization
+
+## 3.1 Problem Formulation
 
 
+## 3.2 Gradient Estimator
 
-
-
-
-
-
+## 3.3 Bandit Gradient Descent
 
 
