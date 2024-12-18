@@ -23,11 +23,17 @@
 - ![alt text](image-2.png)
 - ![alt text](image-3.png)
 ## 2.2 Loss Estimator
-
+![alt text](image-4.png)
 
 ## 2.3 Exp3 and Regret Analysis
+![alt text](image-5.png)
 
+- We have proved the regret upper bound for Exp3:
+$$\mathbb{E}\left[\mathrm{Regret}_T\right] \leq\mathcal{O}\left(\sqrt{TK\log K}\right)$$
+- ![alt text](image-6.png)
+- Exp3 doesn’t achieve minimax optimal regret for MAB
 
+![alt text](image-7.png)
 
 # Part 3. Bandit Convex Optimization
 
@@ -36,6 +42,16 @@
 
 ## 3.2 Gradient Estimator
 
+![alt text](image-9.png)
+![alt text](image-10.png)
+![alt text](image-11.png)
+
+
 ## 3.3 Bandit Gradient Descent
+![alt text](image-12.png)
+
+## 3.4 Regret Analysis
+
+
 
 
